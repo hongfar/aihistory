@@ -1,0 +1,251 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="maximum-scale=1.0,minimum-scale=1.0,user-scalable=0,initial-scale=1.0,width=device-width" />
+		<meta name="format-detection" content="telephone=no,email=no,date=no,address=no">
+		<title>AI有故事</title>
+		<link rel="stylesheet" type="text/css" href="../css/api.css" />
+		<style type="text/css">
+			html, body {
+				height: 100%;
+			}
+			.wrap {
+				display: -webkit-box;
+				-webkit-box-orient: vertical;
+				-webkit-flex-flow: column;
+			}
+			header {
+				height: 44px;
+				width: 100%;
+				text-align: center;
+				background-color: #2e4b93;
+				color: #fff;
+				line-height: 44px;
+				font-size: 20px;
+			}
+			footer {
+				background:#2e4b93;
+				height:24px;
+				border-top:8px solid #3e7fb8;
+				color:#c6d3f1;
+				display:flex;
+				align-items:center;
+				align-content:center;
+				text-align:center;
+				flex-wrap:wrap;
+				justify-content: center;
+			}
+
+			.listBb{
+				overflow: hidden;
+				padding-bottom:20px;
+				-webkit-box-flex: 1;
+				-webkit-flex: 1;
+				background:#f3f3f3;
+			}
+			.listBb .item{border-bottom:1px solid #e5e5e5;padding:18px;overflow:hidden;overflow: hidden;}
+
+			.listBb .conB{overflow:hidden;font-size:26px;color:#333;line-height:38px;}
+            .listBb .conBtn{line-height:20px;font-size:20px;margin-top:5px;height:100px;}
+            .listBb .imgdiv{width:120px;height:60px;margin-left:5px;}
+            .listBb img{width:120px;margin-top:5px;}
+
+            .fl_all { float:left; display:inline-block }
+            .fr_all { float:right; display:inline-block }
+
+            .spanClass {
+                padding: 5px 5px;
+                margin: 5px;
+                display: inline-block;
+                background-color: #e8e8e8;
+            }
+		</style>
+	</head>
+	<body class="wrap">
+		<header>
+			AI有故事
+		</header>
+		<section class="listBb">
+			<div class="item">
+				<div class="conB">
+					<p align="center">验证码识别</p>
+				</div>
+			</div>
+            <div class="imgdiv fl_all">
+                <img src="../image/weixin.jpg" id="img"/>
+            </div>
+            <div class="item">
+				<div class="conBtn">
+                    <span class="spanClass" tapmode="hover" onclick="fnDownload()">下载</span>
+                    <span class="spanClass" tapmode="hover" onclick="getPicture()">拍照</span>
+                    <span class="spanClass" tapmode="hover" onclick="fnCut()">裁剪</span>
+                    <span class="spanClass" tapmode="hover" onclick="fnPredict()">识别</span>
+				</div>
+			</div>
+		</section>
+		<footer>
+			Copyright AI有故事&copy;<span id="year"></span>
+		</footer>
+	</body>
+	<script type="text/javascript" src="../script/api.js"></script>
+	<script type="text/javascript">
+        var FNImageClip;
+        var canDownload = true;
+        var canPic = true;
+        var canCut = false;
+        var canPredict = false;
+        var localFileName = '';
+		apiready = function() {
+            FNImageClip = api.require('FNImageClip');
+			//输出Log，Log将显示在APICloud Studio控制台
+			var header = $api.dom('header');
+			// 获取 header 标签元素
+			var footer = $api.dom('footer');
+			// 获取 footer 标签元素
+			// 1.修复开启沉浸式效果带来的顶部Header与手机状态栏重合的问题，最新api.js方法已支持适配iPhoneX；
+			// 2.默认已开启了沉浸式效果 config.xml中 <preference name="statusBarAppearance" value="true"/>
+			// 3.沉浸式效果适配支持iOS7+，Android4.4+以上版本
+			var headerH = $api.fixStatusBar(header);
+			// 最新api.js为了适配iPhoneX增加的方法，修复底部Footer部分与iPhoneX的底部虚拟横条键重叠的问题；
+			var footerH = $api.fixTabBar(footer);
+			/*
+			api.openFrame({
+				name : 'verifycode',
+				url : 'html/verifycode.html',
+				bounces : false,
+				rect : {// 推荐使用Margin布局，用于适配屏幕的动态变化
+					marginTop : headerH, // main页面距离win顶部的高度
+					marginBottom : footerH, // main页面距离win底部的高度
+					w : 'auto' // main页面的宽度 自适应屏幕宽度
+				}
+			});
+			*/
+			// 获取当前年份时间，并加载显示到页面
+			var year = $api.byId('year');
+			year.innerHTML = new Date().getFullYear();
+
+		};
+
+        function fnPredict() {
+            if(canPredict)
+            {
+                alert("开始识别！");
+                //alert(localFileName);
+                api.ajax({
+                   url: 'http://39.96.2.254/verifycode/predict.jsp',
+                   method: 'post',
+                    data : {
+                        files : {file: localFileName}
+                    }
+               },function(ret,err){
+                    if (ret) {
+                        //api.alert({msg: JSON.stringify(ret) });
+                        api.alert({msg: "验证码为："+ret.verifycode});
+                    } else if (err) {
+                        api.alert({ msg: JSON.stringify(err) });
+                    }
+               });
+           }
+           else {
+               alert("请先下载或者拍照裁剪后识别！");
+           }
+        }
+        function fnDownload() {
+            var timestamp = new Date().getTime();
+            localFileName = 'fs://image/temp/'+timestamp+'.jpg';
+            api.download({
+                url : 'http://39.96.2.254/verifycode/verifycode.jsp',
+                savePath : localFileName,
+                report : true,
+                cache : true,
+                allowResume : true
+            }, function(ret, err) {
+                if (ret.state == 1) {
+                    document.getElementById('img').src = ret.savePath;
+                    canPredict = true;
+                } else if(err) {
+                    alert(JSON.stringify(err));
+                }
+            });
+        }
+        function getPicture() {
+            api.getPicture({
+                sourceType: 'camera',
+                encodingType: 'jpg',
+                mediaValue: 'pic',
+                destinationType: 'url',
+                allowEdit: true,
+                quality: 100,
+                targetWidth: 500,
+                targetHeight: 500,
+                saveToPhotoAlbum: false
+            }, function(ret, err) {
+                if (ret) {
+                    //alert(JSON.stringify(ret));
+                    canCut = true;
+                    var FNImageClip = api.require('FNImageClip');
+                    FNImageClip.open({
+                        rect: {
+                            x: 0,
+                            y: 0,
+                            y: api.winHeight / 2,
+                            h: api.winHeight
+                        },
+                        srcPath: ret.data,
+                        style: {
+                            mask: '#888',
+                            clip: {
+                                w: 120,
+                                h: 40,
+                                x: api.winWidth / 2 - 120,
+                                y: 50,
+                                borderColor: '#0f0',
+                                borderWidth: 1,
+                                appearance: 'rectangle'
+                            }
+                        },
+                        fixedOn: api.frameName
+                    }, function(ret, err) {
+                        if (ret) {
+                            //alert(JSON.stringify(ret));
+                        } else {
+                            alert(JSON.stringify(err));
+                        }
+                    });
+                } else {
+                    alert(JSON.stringify(err));
+                }
+            });
+        }
+
+        function fnCut() {
+            if(canCut)
+            {
+                var timestamp = new Date().getTime();
+                localFileName = 'fs://image/temp/' + timestamp + '.jpg';
+                FNImageClip.save({
+                    destPath: localFileName,
+                    copyToAlbum: true,
+                    quality: 1
+                }, function(ret, err) {
+                    if (ret) {
+                        //alert(JSON.stringify(ret));
+                        document.getElementById('img').src = api.fsDir + '/' + 'image' + '/temp/' + +timestamp + '.jpg';
+                        canPredict = true;
+                        fnClose();
+                    } else {
+                        alert(JSON.stringify(err));
+                    }
+                });
+            }
+            else
+            {
+                alert('请先拍照！');
+            }
+        }
+        function fnClose() {
+            FNImageClip.close();
+        }
+	</script>
+</html>
